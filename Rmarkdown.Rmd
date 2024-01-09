@@ -32,20 +32,71 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 ```{r, echo=FALSE}
 library(readxl)
 library(dplyr)
+library(tidyr)
 ```
 
 #read in Dataset
 ```{r}
-Df <- read_excel("GlobalLandCove_ComputeChange_ExportTable_TableToExcel.xlsx") %>%
-mutate(class = ifelse(Class_From == "Bodies of Water" , "Water", 
-                          ifelse(, "Between 51 and 100", 
-                                 "50 or below")))```
+Df <- read_excel("GlobalLandCove_ComputeChange_ExportTable_TableToExcel.xlsx")
+
+```
+
 
 ```{r}
-grouped <- df%>%
-  group_by(Class_From)
+
+# Make sure that df is indeed a dataframe or tibble
+Df <- as.data.frame(Df)
+
+# Use dplyr's mutate to categorize 'Class_From' and remove rows with "Same"
+Cleaned_Data <- Df %>%
+  dplyr::mutate(Class = dplyr::case_when(
+    Class_From == "Same" ~ NA_character_,
+    Class_From %in% c("Closed Canopy Broadleaved Deciduous Tree Cover",
+                      "Closed to Open Canopy Broadleaved Deciduous Tree Cover",
+                      "Closed to Open Canopy Broadleaved Evergreen Tree Cover",
+                      "Open Canopy Broadleaved Deciduous Tree Cover",
+                      "Mostly Trees and Shrubs in a Mosaic with Herbaceous Cover") ~ "forest",
+    Class_From %in% c("Bodies of water",
+                      "Flooded Shrub or Herbaceous Cover",
+                      "Fresh or Brackish Water Flooded Tree Cover",
+                      "Saline Water Flooded Tree Cover") ~ "water body",
+    Class_From %in% c("Herbaceous Cropland",
+                      "Irrigated or Post-Flooding Cropland",
+                      "Mostly Cropland in a Mosaic with Natural Vegetation",
+                      "Mostly Natural Vegetation in a Mosaic with Cropland",
+                      "Rainfed Cropland") ~ "farmland",
+    Class_From %in% c("Mostly Herbaceous Cover in a Mosaic with Trees and Shrubs",
+                      "Shrubland",
+                      "Sparse Vegetation",
+                      "Grassland") ~ "grassland",
+    TRUE ~ as.character(Class_From)
+  )) %>%
+  filter(!is.na(Class)) %>%
+  dplyr::select(-OBJECTID, -Value, -Classvalue, -Class_name, -Class_From, -Class_To, -Red, -Green, -Blue, -Alpha, -Count)
+
+# Check the first few rows of Cleaned_Data
+head(Cleaned_Data)
+
+```
+```{r}
+
+# Move the Class column to the first position
+Cleaned_Data <- Cleaned_Data %>%
+  select(Class, everything())%>%
+  group_by(Class) %>%
+  summarise(across(where(is.numeric), sum, na.rm = TRUE))
+
 ```
 
 
+```{r}
+file_path <- "cleaned.csv"
+
+# Export the data frame to a CSV file
+write.csv(Cleaned_Data, file = file_path, row.names = FALSE)
 ```
+```{r}
+
+```
+
 
