@@ -25,3 +25,9 @@ body {
 .about-button:hover {
     background-color: #81c784; /* Lighter green on hover */
 }
+
+.centered-iframe {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
